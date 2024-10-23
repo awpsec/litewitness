@@ -1,5 +1,0 @@
-selenium==4.3.0  # Stable Selenium version that works with ChromeDriver 114.x
-webdriver-manager==3.8.5  # Stable webdriver-manager version that works with ChromeDriver 114.x
-requests>=2.0  # Requests doesn't need to be version-locked unless specific issues arise
-pyfiglet>=1.0  # No version locking needed
-colorama>=0.4  # No version locking needed
