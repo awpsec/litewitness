@@ -1,6 +1,20 @@
 # litewitness
 lightweight web server prober
 
+installation:
+
+download zip, or git clone
+
+```chmod +x setup.sh```
+
+```./setup.sh```
+
+```source lite-witness-env/bin/activate```
+
+```./setup.sh```
+
+ready to go!
+
 ```
  ,--.  _   _   __  _ .--.   .--.  .---.  .---.
 `'_\ :[ \ [ \ [  ][ '/'`\ \( (`\]/ /__\/ /'`\]
