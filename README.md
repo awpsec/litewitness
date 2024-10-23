@@ -15,6 +15,8 @@ download zip, or git clone
 
 ready to go!
 
+make sure you're creating a new folder to store the outfiles in (screenshots, success.txt and fail.txt)
+
 ```
  ,--.  _   _   __  _ .--.   .--.  .---.  .---.
 `'_\ :[ \ [ \ [  ][ '/'`\ \( (`\]/ /__\/ /'`\]
