@@ -1,5 +1,5 @@
 # litewitness
-lightweight web server prober
+lightweight web screenshot tool
 
 installation:
 
