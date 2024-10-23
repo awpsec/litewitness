@@ -1,7 +1,7 @@
 # litewitness
 lightweight web server prober
 
- ,--.  _   _   __  _ .--.   .--.  .---.  .---.
+``` ,--.  _   _   __  _ .--.   .--.  .---.  .---.
 `'_\ :[ \ [ \ [  ][ '/'`\ \( (`\]/ /__\/ /'`\]
 // | |,\ \/\ \/ /  | \__/ | `'.'.| \__.,| \__.
 '-;__/ \__/\__/   | ;.__/ [\__) )'.__.''.___.'
@@ -22,3 +22,4 @@ options:
                         Output folder for screenshots and logs
   -timeout TIMEOUT      Page load timeout in seconds (default: 3)
   -v, --verbose         Enable verbose output
+```
