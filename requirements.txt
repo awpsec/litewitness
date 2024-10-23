@@ -1,0 +1,5 @@
+selenium==4.3.0
+webdriver-manager==3.8.5
+requests>=2.0
+pyfiglet>=1.0
+colorama>=0.4
