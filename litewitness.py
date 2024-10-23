@@ -1,16 +1,16 @@
+import os
+import argparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException
-import argparse
 import time
-import os
 import pyfiglet
 from colorama import Fore, Style
 
 banner = r"""
  ,--.  _   _   __  _ .--.   .--.  .---.  .---.
-`'_\ :[ \ [ \ [  ][ '/'`\ \( (`\]/ /__\/ /'`\]
+`'_\ :[ \ [ \ [  ][ '/'`\ \( (`\]/ /__\/ /'`\)
 // | |,\ \/\ \/ /  | \__/ | `'.'.| \__.,| \__.
 '-;__/ \__/\__/   | ;.__/ [\__) )'.__.''.___.'
                   [__|
@@ -24,10 +24,13 @@ def capture_screenshot(url, driver, output_folder, verbose):
     try:
         driver.get(url)
         time.sleep(3)  # give the page some time to load
-        filename = url.replace("http://", "").replace("https://", "").replace("/", "_") + ".png"
-        screenshot_path = os.path.join(output_folder, filename)
-        driver.save_screenshot(screenshot_path)
 
+        # sanitize URL or IP for file naming
+        filename = url.replace("http://", "").replace("https://", "").replace("/", "_").replace(":", "_") + ".png"
+        screenshot_path = os.path.join(output_folder, filename)
+
+        driver.save_screenshot(screenshot_path)
+        
         if verbose:
             print(f"{url} = captured screenshot")
 
@@ -38,7 +41,8 @@ def capture_screenshot(url, driver, output_folder, verbose):
 
         return False, url
 
-def main(input_file, output_folder, timeout, verbose):
+# main function
+def main(input_file, output_folder, timeout, verbose, success_log, fail_log):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
@@ -50,7 +54,7 @@ def main(input_file, output_folder, timeout, verbose):
 
     # manually specify the ChromeDriver path
     driver = webdriver.Chrome(
-        service=Service("/usr/bin/chromedriver"),  # manually set the path to the installed ChromeDriver
+        service=Service("/usr/bin/chromedriver"),
         options=chrome_options
     )
     driver.set_page_load_timeout(timeout)
@@ -64,10 +68,6 @@ def main(input_file, output_folder, timeout, verbose):
             print(f"using existing output folder: {output_folder}")
     except Exception as e:
         print(f"error creating output folder: {e}")
-
-    # prepare log files
-    success_log = os.path.join(output_folder, "success.txt")
-    fail_log = os.path.join(output_folder, "fail.txt")
 
     # clear previous log contents (if any)
     try:
@@ -85,7 +85,8 @@ def main(input_file, output_folder, timeout, verbose):
     for url in urls:
         print(f"Processing {url}...")  # add this to check each URL/IP being processed
         success, logged_url = capture_screenshot(url, driver, output_folder, verbose)
-
+        
+        # log success or failure
         if success:
             with open(success_log, 'a') as success_file:
                 success_file.write(f"{logged_url} = captured screenshot\n")
@@ -95,14 +96,21 @@ def main(input_file, output_folder, timeout, verbose):
 
     driver.quit()
 
+# argument parser
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="litewitness: a lightweight web screenshot tool")
     parser.add_argument("-x", "--input", required=True, help="path to the input file with URLs/IPs")
     parser.add_argument("-o", "--output", required=True, help="output folder for screenshots and logs")
-    parser.add_argument("-timeout", type=int, default=3, help="page load timeout in seconds (default: 3)")
     parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose output")
-
+    parser.add_argument("-sf", "--successfile", default="success.txt", help="path to success log file (default: success.txt in output folder)")
+    parser.add_argument("-ff", "--failfile", default="fail.txt", help="path to failure log file (default: fail.txt in output folder)")
+    parser.add_argument("-timeout", type=int, default=3, help="page load timeout in seconds (default: 3)")
+    
     args = parser.parse_args()
 
+    # if the success/fail file is not an absolute path, put it in the output folder
+    success_log = args.successfile if os.path.isabs(args.successfile) else os.path.join(args.output, args.successfile)
+    fail_log = args.failfile if os.path.isabs(args.failfile) else os.path.join(args.output, args.failfile)
+
     # call the main function
-    main(args.input, args.output, args.timeout, args.verbose) 
+    main(args.input, args.output, args.timeout, args.verbose, success_log, fail_log)
