@@ -43,23 +43,27 @@ def capture_screenshot(url, driver, output_folder, verbose, screenshot_count):
         for i in range(1, screenshot_count + 1):
             filename = url.replace("http://", "").replace("https://", "").replace("/", "_").replace(":", "_") + f"_{i}.png"
             screenshot_path = os.path.join(output_folder, filename)
-
             driver.save_screenshot(screenshot_path)
-
             if verbose:
                 print(f"{url} = captured screenshot {i}/{screenshot_count}")
-
         return True, url
     except TimeoutException:
         if verbose:
             print(f"{url} = failed (timeout)")
-
         return False, url
     except WebDriverException as e:
         if verbose:
             print(f"{url} = failed (connection error: {str(e)})")
-
         return False, url
+
+def try_default_ports(url, driver, output_folder, verbose, screenshot_count):
+    for port, protocol in [(80, "http"), (443, "https")]:
+        full_url = f"{protocol}://{url}:{port}"
+        print(f"Testing {full_url} using {protocol}...")
+        success, logged_url = capture_screenshot(full_url, driver, output_folder, verbose, screenshot_count)
+        if success:
+            return success, logged_url
+    return False, url
 
 def main(input_file, xml_file, output_folder, timeout, jitter, verbose, success_log, fail_log, screenshot_count):
     chrome_options = Options()
@@ -78,18 +82,13 @@ def main(input_file, xml_file, output_folder, timeout, jitter, verbose, success_
 
     try:
         if not os.path.exists(output_folder):
-            print(f"creating output folder: {output_folder}")
             os.makedirs(output_folder, exist_ok=True)
-        else:
-            print(f"using existing output folder: {output_folder}")
     except Exception as e:
         print(f"error creating output folder: {e}")
 
     try:
         open(success_log, 'w').close()
-        print(f"created success log at: {success_log}")
         open(fail_log, 'w').close()
-        print(f"created fail log at: {fail_log}")
     except Exception as e:
         print(f"error creating log files: {e}")
 
@@ -101,38 +100,39 @@ def main(input_file, xml_file, output_folder, timeout, jitter, verbose, success_
             urls = file.read().splitlines()
 
     for url in urls:
-        print(f"processing {url}...")
-
-        if not url.startswith("http://") and not url.startswith("https://"):
-            if ":443" in url:
+        if not url.startswith("http://") and not url.startswith("https://") and ':' not in url:
+            print(f"processing {url} on default ports 80 and 443...")
+            success, logged_url = try_default_ports(url, driver, output_folder, verbose, screenshot_count)
+        else:
+            if ':443' in url and not url.startswith("https://"):
                 url = f"https://{url.split(':')[0]}:443"
+            elif ':80' in url and not url.startswith("http://"):
+                url = f"http://{url.split(':')[0]}:80"
+
+            if url.startswith("http://") or url.startswith("https://"):
+                print(f"processing {url} using {'https' if url.startswith('https') else 'http'}...")
             else:
                 url = f"http://{url}"
+                print(f"processing {url} using http...")
 
-        try:
-            print(f"testing URL: {url}")
-            
             success, logged_url = capture_screenshot(url, driver, output_folder, verbose, screenshot_count)
 
-            if success:
-                with open(success_log, 'a') as success_file:
-                    success_file.write(f"{logged_url} = captured screenshot(s)\n")
-            else:
-                with open(fail_log, 'a') as fail_file:
-                    fail_file.write(f"{logged_url} = failed\n")
+        if success:
+            with open(success_log, 'a') as success_file:
+                success_file.write(f"{logged_url} = captured screenshot(s)\n")
+        else:
+            with open(fail_log, 'a') as fail_file:
+                fail_file.write(f"{logged_url} = failed\n")
 
-            if jitter:
-                time.sleep(random.uniform(0, jitter))
-
-        except Exception as e:
-            print(f"error while processing {url}: {e}")
+        if jitter:
+            time.sleep(random.uniform(0, jitter))
 
     driver.quit()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="litewitness: a lightweight web screenshot tool")
     parser.add_argument("-x", "--input", help="path to the input file with URLs/IPs")
-    parser.add_argument("-xml", "--xmlfile", help="path to the Nmap XML file")
+    parser.add_argument("-xml", "--xmlfile", help="path to the nmap XML file")
     parser.add_argument("-o", "--output", required=True, help="output folder for screenshots and logs")
     parser.add_argument("-timeout", type=int, default=3, help="page load timeout in seconds (default: 3)")
     parser.add_argument("-ss", "--screenshotcount", type=int, default=1, help="number of screenshots per webpage (default: 1)")
@@ -147,4 +147,3 @@ if __name__ == "__main__":
     fail_log = args.failfile if os.path.isabs(args.failfile) else os.path.join(args.output, args.failfile)
 
     main(args.input, args.xmlfile, args.output, args.timeout, args.jitter, args.verbose, success_log, fail_log, args.screenshotcount)
-
