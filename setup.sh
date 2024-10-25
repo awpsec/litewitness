@@ -1,22 +1,21 @@
 #!/bin/bash
 
-# create and activate the virtual environment
-if [ ! -d "lite-witness-env" ]; then
-    python3 -m venv lite-witness-env
-    echo "created virtual environment: lite-witness-env"
-fi
+sudo apt update
 
-source lite-witness-env/bin/activate
+sudo apt install -y python3 python3-pip python3-venv
 
-# install the latest Python dependencies
-pip install --upgrade pip
-pip install --upgrade -r requirements.txt
+sudo apt install -y firefox-esr
 
-# install the latest available Chromium and Chromium-driver in Kali/Debian-based Linux systems
-sudo apt-get update
-sudo apt-get install -y chromium chromium-driver
+GECKO_VERSION="v0.33.0"
+wget https://github.com/mozilla/geckodriver/releases/download/${GECKO_VERSION}/geckodriver-${GECKO_VERSION}-linux64.tar.gz
+tar -xvzf geckodriver-${GECKO_VERSION}-linux64.tar.gz
+sudo mv geckodriver /usr/local/bin/
+rm geckodriver-${GECKO_VERSION}-linux64.tar.gz
 
-# dynamically install the latest version of ChromeDriver using webdriver-manager
-python3 -c "from webdriver_manager.chrome import ChromeDriverManager; ChromeDriverManager().install()"
+python3 -m venv wit-env
+source wit-env/bin/activate
 
-echo "setup complete, the virtual environment has been created and dependencies are installed."
+pip install -r requirements.txt
+
+echo "Setup completed successfully!"
+echo "To activate the virtual environment, run: source wit-env/bin/activate"
