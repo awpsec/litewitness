@@ -35,37 +35,45 @@ def parse_nmap_xml(xml_file):
             hosts_with_ports.append(f"{protocol}://{ip}:{port_id}")
     return hosts_with_ports
 
-def capture_screenshot(url, driver, output_folder, verbose, screenshot_count):
+def capture_screenshot(url, driver, output_folder, verbose, screenshot_count, full_page):
     try:
         driver.get(url)
         time.sleep(3)
+
+        if full_page:
+            driver.set_window_size(1920, 1080)
+            total_height = driver.execute_script("return document.body.scrollHeight")
+            driver.set_window_size(1920, total_height)
+        else:
+            driver.set_window_size(1920, 1080)
 
         for i in range(1, screenshot_count + 1):
             filename = url.replace("http://", "").replace("https://", "").replace("/", "_").replace(":", "_") + f"_{i}.png"
             screenshot_path = os.path.join(output_folder, filename)
             driver.save_screenshot(screenshot_path)
             if verbose:
-                print(f"{url} = captured screenshot {i}/{screenshot_count}")
+                print(f"{url} = captured {'full-page' if full_page else 'minimal'} screenshot {i}/{screenshot_count}")
         return True, url
     except TimeoutException:
         if verbose:
             print(f"{url} = failed (timeout)")
         return False, url
     except WebDriverException as e:
+        error_message = str(e).split('\n')[0]
         if verbose:
-            print(f"{url} = failed (connection error: {str(e)})")
+            print(f"{url} = failed (connection error: {error_message})")
         return False, url
 
-def try_default_ports(url, driver, output_folder, verbose, screenshot_count):
+def try_default_ports(url, driver, output_folder, verbose, screenshot_count, full_page):
     for port, protocol in [(80, "http"), (443, "https")]:
         full_url = f"{protocol}://{url}:{port}"
         print(f"Testing {full_url} using {protocol}...")
-        success, logged_url = capture_screenshot(full_url, driver, output_folder, verbose, screenshot_count)
+        success, logged_url = capture_screenshot(full_url, driver, output_folder, verbose, screenshot_count, full_page)
         if success:
             return success, logged_url
     return False, url
 
-def main(input_file, xml_file, output_folder, timeout, jitter, verbose, success_log, fail_log, screenshot_count):
+def main(input_file, xml_file, output_folder, timeout, jitter, verbose, success_log, fail_log, screenshot_count, full_page):
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
@@ -102,7 +110,7 @@ def main(input_file, xml_file, output_folder, timeout, jitter, verbose, success_
     for url in urls:
         if not url.startswith("http://") and not url.startswith("https://") and ':' not in url:
             print(f"processing {url} on default ports 80 and 443...")
-            success, logged_url = try_default_ports(url, driver, output_folder, verbose, screenshot_count)
+            success, logged_url = try_default_ports(url, driver, output_folder, verbose, screenshot_count, full_page)
         else:
             if ':443' in url and not url.startswith("https://"):
                 url = f"https://{url.split(':')[0]}:443"
@@ -115,7 +123,7 @@ def main(input_file, xml_file, output_folder, timeout, jitter, verbose, success_
                 url = f"http://{url}"
                 print(f"processing {url} using http...")
 
-            success, logged_url = capture_screenshot(url, driver, output_folder, verbose, screenshot_count)
+            success, logged_url = capture_screenshot(url, driver, output_folder, verbose, screenshot_count, full_page)
 
         if success:
             with open(success_log, 'a') as success_file:
@@ -140,10 +148,12 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose output")
     parser.add_argument("-sf", "--successfile", default="success.txt", help="path to success log file (default: success.txt in output folder)")
     parser.add_argument("-ff", "--failfile", default="fail.txt", help="path to failure log file (default: fail.txt in output folder)")
+    parser.add_argument("-full", "--fullpage", action="store_true", help="capture full-page screenshot, big file size! (default: off)")
 
     args = parser.parse_args()
 
     success_log = args.successfile if os.path.isabs(args.successfile) else os.path.join(args.output, args.successfile)
     fail_log = args.failfile if os.path.isabs(args.failfile) else os.path.join(args.output, args.failfile)
 
-    main(args.input, args.xmlfile, args.output, args.timeout, args.jitter, args.verbose, success_log, fail_log, args.screenshotcount)
+    main(args.input, args.xmlfile, args.output, args.timeout, args.jitter, args.verbose, success_log, fail_log, args.screenshotcount, args.fullpage)
+
