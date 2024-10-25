@@ -69,12 +69,9 @@ def capture_screenshot(url, driver, output_folder, verbose, screenshot_count, fu
         time.sleep(3)
 
         if full_page:
-            # Set initial size to 1920x1080
             driver.set_window_size(1920, 1080)
-            # Get the page dimensions
             width = driver.execute_script("return Math.max(document.body.scrollWidth, document.body.offsetWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth);")
             height = driver.execute_script("return Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight);")
-            # Set the window size to the larger of the page dimensions or 1920x1080
             driver.set_window_size(max(width, 1920), max(height, 1080))
         else:
             driver.set_window_size(1920, 1080)
@@ -164,7 +161,6 @@ def generate_html_report(output_folder, success_log, fail_log):
             <h1>Litewitness Report</h1>
     """
 
-    # Add successful captures
     html_content += f'<h2 class="success">Successfully Captured ({len(success_ips)})</h2>'
     for ip in success_ips:
         screenshot_filename = next((f for f in os.listdir(output_folder) if f.startswith(ip.replace(':', '_')) and f.endswith('.png')), None)
